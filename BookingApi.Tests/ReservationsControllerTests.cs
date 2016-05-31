@@ -57,23 +57,26 @@ namespace Ploeh.Samples.BookingApi.Tests
         [Fact]
         public void PostReturnsCorrectResultAndHasCorrectStateOnAcceptableRequest()
         {
+            var json =
+                   new ReservationDto
+                   {
+                       Date = "2016-05-31",
+                       Name = "Mark Seemann",
+                       Email = "mark@example.com",
+                       Quantity = 1
+                   };
             var sut = new Mock<ReservationsController> { CallBase = true };
             sut
                 .Setup(s => s.ReadReservedSeats(new DateTime(2016, 5, 31)))
                 .Returns(0);
-
-            var json =
-                new ReservationDto
-                {
-                    Date = "2016-05-31",
-                    Name = "Mark Seemann",
-                    Email = "mark@example.com",
-                    Quantity = 1
-                };
+            sut
+                .Setup(s => s.SaveReservation(new DateTime(2016, 5, 31), json))
+                .Verifiable();
+            
             var actual = sut.Object.Post(json);
 
             Assert.IsAssignableFrom<OkResult>(actual);
-            sut.Verify(s => s.SaveReservation(new DateTime(2016, 5, 31), json));
+            sut.Verify();
         }
     }
 }
