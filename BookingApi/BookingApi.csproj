@@ -83,6 +83,10 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="App_Data\Booking.mdf" />
+    <Content Include="App_Data\Booking_log.ldf">
+      <DependentUpon>Booking.mdf</DependentUpon>
+    </Content>
     <Content Include="Global.asax" />
     <Content Include="packages.config" />
     <None Include="Web.Debug.config">
