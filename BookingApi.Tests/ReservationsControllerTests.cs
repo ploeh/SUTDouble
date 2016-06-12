@@ -36,13 +36,12 @@ namespace Ploeh.Samples.BookingApi.Tests
         [Fact]
         public void PostReturnsCorrectResultWhenCapacityIsInsufficient()
         {
+            var repo = new Mock<SqlReservationsRepository>();
             var sut = new Mock<ReservationsController> { CallBase = true };
-            sut.Setup(s => s.OpenDbConnection()).Returns((SqlConnection)null);
-            sut
-                .Setup(s => s.ReadReservedSeats(
-                    It.IsAny<SqlConnection>(),
-                    It.IsAny<DateTime>()))
+            repo
+                .Setup(r => r.ReadReservedSeats(It.IsAny<DateTime>()))
                 .Returns(sut.Object.Capacity);
+            sut.Setup(s => s.CreateRepository()).Returns(repo.Object);
 
             var actual =
                 sut.Object.Post(
@@ -69,23 +68,20 @@ namespace Ploeh.Samples.BookingApi.Tests
                        Email = "mark@example.com",
                        Quantity = 1
                    };
-            var sut = new Mock<ReservationsController> { CallBase = true };
-            sut.Setup(s => s.OpenDbConnection()).Returns((SqlConnection)null);
-            sut
-                .Setup(s => s.ReadReservedSeats(
-                    It.IsAny<SqlConnection>(),
-                    new DateTime(2016, 5, 31)))
+            var repo = new Mock<SqlReservationsRepository>();
+            repo
+                .Setup(r => r.ReadReservedSeats(new DateTime(2016, 5, 31)))
                 .Returns(0);
-            sut
-                .Setup(s => s.SaveReservation(
-                    It.IsAny<SqlConnection>(),
-                    new DateTime(2016, 5, 31), json))
+            repo
+                .Setup(r => r.SaveReservation(new DateTime(2016, 5, 31), json))
                 .Verifiable();
-            
+            var sut = new Mock<ReservationsController> { CallBase = true };
+            sut.Setup(s => s.CreateRepository()).Returns(repo.Object);
+
             var actual = sut.Object.Post(json);
 
             Assert.IsAssignableFrom<OkResult>(actual);
-            sut.Verify();
+            repo.Verify();
         }
     }
 }
