@@ -8,12 +8,18 @@ namespace Ploeh.Samples.BookingApi
 {
     public class ReservationsController : ApiController
     {
-        public ReservationsController()
+        public ReservationsController(IReservationsRepository repository)
         {
+            if (repository == null)
+                throw new ArgumentNullException(nameof(repository));
+
             this.Capacity = 12;
+            this.Repository = repository;
         }
 
         public int Capacity { get; }
+
+        public IReservationsRepository Repository { get; }
 
         public IHttpActionResult Post(ReservationDto reservationDto)
         {
@@ -21,22 +27,14 @@ namespace Ploeh.Samples.BookingApi
             if (!DateTime.TryParse(reservationDto.Date, out requestedDate))
                 return this.BadRequest("Invalid date.");
 
-            using (var repo = this.CreateRepository())
-            {
-                var reservedSeats = repo.ReadReservedSeats(requestedDate);
-                if (this.Capacity < reservationDto.Quantity + reservedSeats)
-                    return this.StatusCode(HttpStatusCode.Forbidden);
+            var reservedSeats =
+                this.Repository.ReadReservedSeats(requestedDate);
+            if (this.Capacity < reservationDto.Quantity + reservedSeats)
+                return this.StatusCode(HttpStatusCode.Forbidden);
 
-                repo.SaveReservation(requestedDate, reservationDto);
+            this.Repository.SaveReservation(requestedDate, reservationDto);
 
-                return this.Ok();
-            }
-        }
-
-        [AcceptVerbs("")] // Hack to prevent routing from thinking this is an action method
-        public virtual SqlReservationsRepository CreateRepository()
-        {
-            return new SqlReservationsRepository();
+            return this.Ok();
         }
     }
 }

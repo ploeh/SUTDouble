@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Http;
+using System.Web.Http.Dispatcher;
 using System.Web.Security;
 using System.Web.SessionState;
 
@@ -19,6 +20,10 @@ namespace Ploeh.Samples.BookingApi
 
             GlobalConfiguration.Configuration.Formatters.JsonFormatter.SerializerSettings.ContractResolver =
                 new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+
+            GlobalConfiguration.Configuration.Services.Replace(
+                typeof(IHttpControllerActivator), 
+                new PureCompositionRoot());
         }
     }
 }

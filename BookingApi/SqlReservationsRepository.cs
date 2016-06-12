@@ -7,7 +7,8 @@ using System.Web;
 
 namespace Ploeh.Samples.BookingApi
 {
-    public class SqlReservationsRepository : IDisposable
+    public class SqlReservationsRepository :
+        IReservationsRepository, IDisposable
     {
         private readonly Lazy<SqlConnection> lazyConn;
 

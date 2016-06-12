@@ -16,7 +16,8 @@ namespace Ploeh.Samples.BookingApi.Tests
         [Fact]
         public void PostReturnsCorrectResultWhenDateisInvalid()
         {
-            var sut = new ReservationsController();
+            var sut = new ReservationsController(
+                new Mock<IReservationsRepository>().Object);
 
             var actual =
                 sut.Post(
@@ -36,15 +37,14 @@ namespace Ploeh.Samples.BookingApi.Tests
         [Fact]
         public void PostReturnsCorrectResultWhenCapacityIsInsufficient()
         {
-            var repo = new Mock<SqlReservationsRepository>();
-            var sut = new Mock<ReservationsController> { CallBase = true };
+            var repo = new Mock<IReservationsRepository>();
+            var sut = new ReservationsController(repo.Object);
             repo
                 .Setup(r => r.ReadReservedSeats(It.IsAny<DateTime>()))
-                .Returns(sut.Object.Capacity);
-            sut.Setup(s => s.CreateRepository()).Returns(repo.Object);
+                .Returns(sut.Capacity);
 
             var actual =
-                sut.Object.Post(
+                sut.Post(
                     new ReservationDto
                     {
                         Date = "2016-05-31",
@@ -68,20 +68,17 @@ namespace Ploeh.Samples.BookingApi.Tests
                        Email = "mark@example.com",
                        Quantity = 1
                    };
-            var repo = new Mock<SqlReservationsRepository>();
+            var repo = new Mock<IReservationsRepository>();
             repo
                 .Setup(r => r.ReadReservedSeats(new DateTime(2016, 5, 31)))
                 .Returns(0);
-            repo
-                .Setup(r => r.SaveReservation(new DateTime(2016, 5, 31), json))
-                .Verifiable();
-            var sut = new Mock<ReservationsController> { CallBase = true };
-            sut.Setup(s => s.CreateRepository()).Returns(repo.Object);
+            var sut = new ReservationsController(repo.Object);
 
-            var actual = sut.Object.Post(json);
+            var actual = sut.Post(json);
 
             Assert.IsAssignableFrom<OkResult>(actual);
-            repo.Verify();
+            repo.Verify(
+                r => r.SaveReservation(new DateTime(2016, 5, 31), json));
         }
     }
 }

@@ -103,7 +103,9 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="IReservationsRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PureCompositionRoot.cs" />
     <Compile Include="ReservationDto.cs" />
     <Compile Include="ReservationsController.cs" />
     <Compile Include="SqlReservationsRepository.cs" />
