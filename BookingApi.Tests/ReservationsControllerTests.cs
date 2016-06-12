@@ -1,6 +1,7 @@
 ﻿using Moq;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -36,8 +37,11 @@ namespace Ploeh.Samples.BookingApi.Tests
         public void PostReturnsCorrectResultWhenCapacityIsInsufficient()
         {
             var sut = new Mock<ReservationsController> { CallBase = true };
+            sut.Setup(s => s.OpenDbConnection()).Returns((SqlConnection)null);
             sut
-                .Setup(s => s.ReadReservedSeats(It.IsAny<DateTime>()))
+                .Setup(s => s.ReadReservedSeats(
+                    It.IsAny<SqlConnection>(),
+                    It.IsAny<DateTime>()))
                 .Returns(sut.Object.Capacity);
 
             var actual =
@@ -66,11 +70,16 @@ namespace Ploeh.Samples.BookingApi.Tests
                        Quantity = 1
                    };
             var sut = new Mock<ReservationsController> { CallBase = true };
+            sut.Setup(s => s.OpenDbConnection()).Returns((SqlConnection)null);
             sut
-                .Setup(s => s.ReadReservedSeats(new DateTime(2016, 5, 31)))
+                .Setup(s => s.ReadReservedSeats(
+                    It.IsAny<SqlConnection>(),
+                    new DateTime(2016, 5, 31)))
                 .Returns(0);
             sut
-                .Setup(s => s.SaveReservation(new DateTime(2016, 5, 31), json))
+                .Setup(s => s.SaveReservation(
+                    It.IsAny<SqlConnection>(),
+                    new DateTime(2016, 5, 31), json))
                 .Verifiable();
             
             var actual = sut.Object.Post(json);

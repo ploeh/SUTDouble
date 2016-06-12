@@ -18,19 +18,41 @@ namespace Ploeh.Samples.BookingApi
         public IHttpActionResult Post(ReservationDto reservationDto)
         {
             DateTime requestedDate;
-            if(!DateTime.TryParse(reservationDto.Date, out requestedDate))
+            if (!DateTime.TryParse(reservationDto.Date, out requestedDate))
                 return this.BadRequest("Invalid date.");
 
-            var reservedSeats = this.ReadReservedSeats(requestedDate);
-            if(this.Capacity < reservationDto.Quantity + reservedSeats)
-                return this.StatusCode(HttpStatusCode.Forbidden);
+            using (var conn = this.OpenDbConnection())
+            {
+                var reservedSeats = this.ReadReservedSeats(conn, requestedDate);
+                if (this.Capacity < reservationDto.Quantity + reservedSeats)
+                    return this.StatusCode(HttpStatusCode.Forbidden);
 
-            this.SaveReservation(requestedDate, reservationDto);
+                this.SaveReservation(conn, requestedDate, reservationDto);
 
-            return this.Ok();
+                return this.Ok();
+            }
         }
 
-        public virtual int ReadReservedSeats(DateTime date)
+        [AcceptVerbs("")] // Hack to prevent routing from thinking this is an action method
+        public virtual SqlConnection OpenDbConnection()
+        {
+            var connStr = ConfigurationManager.ConnectionStrings["booking"]
+                .ConnectionString;
+
+            var conn = new SqlConnection(connStr);
+            try
+            {
+                conn.Open();
+            }
+            catch
+            {
+                conn.Dispose();
+                throw;
+            }
+            return conn;
+        }
+
+        public virtual int ReadReservedSeats(SqlConnection conn, DateTime date)
         {
             const string sql = @"
                 SELECT COALESCE(SUM([Quantity]), 0) FROM [dbo].[Reservations]
@@ -38,20 +60,16 @@ namespace Ploeh.Samples.BookingApi
                 AND MONTH([Date]) = MONTH(@Date)
                 AND DAY([Date]) = DAY(@Date)";
 
-            var connStr = ConfigurationManager.ConnectionStrings["booking"]
-                .ConnectionString;
-
-            using (var conn = new SqlConnection(connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add(new SqlParameter("@Date", date));
 
-                conn.Open();
                 return (int)cmd.ExecuteScalar();
             }
         }
 
         public virtual void SaveReservation(
+            SqlConnection conn,
             DateTime dateTime,
             ReservationDto reservationDto)
         {
@@ -59,10 +77,6 @@ namespace Ploeh.Samples.BookingApi
                 INSERT INTO [dbo].[Reservations] ([Date], [Name], [Email], [Quantity])
                 VALUES (@Date, @Name, @Email, @Quantity)";
 
-            var connStr = ConfigurationManager.ConnectionStrings["booking"]
-                .ConnectionString;
-
-            using (var conn = new SqlConnection(connStr))
             using (var cmd = new SqlCommand(sql, conn))
             {
                 cmd.Parameters.Add(
@@ -74,7 +88,6 @@ namespace Ploeh.Samples.BookingApi
                 cmd.Parameters.Add(
                     new SqlParameter("@Quantity", reservationDto.Quantity));
 
-                conn.Open();
                 cmd.ExecuteNonQuery();
             }
         }
